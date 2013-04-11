@@ -191,7 +191,7 @@ int count = 0;
 int previousF = 0;
 int currentF = 25;
 int counter;
-
+const int equilibration = 60; // length of time in seconds temp must be constant before output of a reading to the display
 
 void setup()
 {
@@ -263,6 +263,12 @@ float compute_temperature(float resistance) {
 }
 
 
+int convertF(int i) {
+  int F = (i * 9.0 - 80.0 ) / 20;
+  return F;
+}
+
+
 void all_on() {
   int i;
   for(i=0; i < 9;i++) {
@@ -296,7 +302,7 @@ void all_off() {
 
 void write(unsigned int i) {
   Serial.print("Temp: ");
-  Serial.print((i * 9.0 - 80.0 ) / 20.0);
+  Serial.print(convertF(i));
   Serial.println("F");
   Serial.print("Encoded value: ");
   Serial.println(i);
@@ -376,6 +382,9 @@ void loop() {
 
   int j = 0;
   int stable = 0;
+  int locksweeps = (equilibration * 100 / 32);
+
+  
 
 //  Read temperature, sweep the LEDs slowly several times, then reread temperature and check whether it is the same.
 //
@@ -383,8 +392,7 @@ void loop() {
   
   while (currentF != previousF) {
     previousF = currentF;
-    j = ((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0);
-    currentF = (j * 9.0 - 80.0 ) / 20.0;
+    currentF = convertF(((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0));
     for (int k = 0; k < 9; k++) {
       krsweep(30);
       
@@ -394,13 +402,11 @@ void loop() {
  
  // If the previous two temp readings were the same, wait for a further ~ minute while doing faster sweeps of the LEDs.
  
-  while ((stable < 45) && (currentF == previousF)) {
+  while ((stable < locksweeps) && (currentF == previousF)) {
     previousF = currentF;
-    j = ((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0);
- 
     krsweep(5);
     stable +=1;
-    currentF = (j * 9.0 - 80.0 ) / 20.0;
+    currentF = convertF(((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0));
    }
     
  // as long as the temperature doesn't change again, write the temperature to the display. 
@@ -416,10 +422,7 @@ void loop() {
 
     write((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0);
     delay(10000);
-    j = ((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0);
-    currentF = (j * 9.0 - 80.0 ) / 20.0;  
-    Serial.println(currentF);
-    Serial.println(previousF);
+    currentF = convertF(((temp_as_k(measure_temperature()) -273.15 + 20) * 4.0));  
   }
 }
 
